@@ -2,6 +2,7 @@ import torch
 from PIL import Image
 import settings
 import pandas as pd
+import numpy as np
 
 from os.path import join
 from torch.utils.data import Dataset, DataLoader
@@ -35,18 +36,19 @@ class ImageDataset(Dataset):
     def __getitem__(self, index):
         row = self.dataframe.iloc[index]
         filename = row.filename
-        labels = torch.from_numpy(row['any':'subdural'].values, dtype='float')
+        labels = torch.FloatTensor(np.array(row['any':'subdural'].values, dtype='float'))
+        #labels = torch.from_numpy(row['any':'subdural'].values, dtype='float')
 
         image = Image.open(join(self.images_path, filename)).convert("RGB")
 
         if self.transform is not None:
-            image = self.transform(image=image)
+            image = self.transform(image)
 
         return image, labels[0]
 
 
 def get_data_loader(train_transform):
-    train_dataset = ImageDataset('../data', 'train', train_transform)
+    train_dataset = ImageDataset('./data', 'train', train_transform)
     train_data_loader = DataLoader(train_dataset,
                                    batch_size=settings.batch_size,
                                    shuffle=True,

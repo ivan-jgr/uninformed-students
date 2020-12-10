@@ -5,13 +5,16 @@ import torch.optim as optim
 from tqdm import tqdm
 from einops import rearrange
 from models.AnomalyResnet import AnomalyResnet
+from models.PatchNet import PatchAnomalyNet
 from dataloader.dataloader import get_data_loader
 from torchvision import transforms
 
-EPOCHS = 100
+EPOCHS = 1000
 model_name = './ckp/teacher_net.pth'
 
 def distillation_loss(output, target):
+    #print("output size", output.size())
+    #print("target size", target.size())
     err = torch.norm(output - target, dim=1) ** 2
     loss = torch.mean(err)
     return loss
@@ -34,11 +37,11 @@ if __name__ == '__main__':
 
     resnet = AnomalyResnet()
     resnet.load_checkpoint('./ckp/best_model.pth', map_location=not torch.cuda.is_available())
-    resnet = nn.Sequential(*list(resnet.children())[:-2])
+    resnet.backbone.fc = nn.Identity()
     resnet.eval().to(device)
 
     # Teacher
-    teacher = AnomalyResnet()
+    teacher = PatchAnomalyNet()
     teacher.to(device)
 
     # Optimizer
@@ -47,6 +50,7 @@ if __name__ == '__main__':
     # Data
     data_transform = transforms.Compose([
         transforms.Resize((224, 224)),
+        transforms.RandomCrop((65, 65)),
         transforms.ToTensor(),
         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
     ])
@@ -63,7 +67,7 @@ if __name__ == '__main__':
 
             inputs = batch.to(device)
             with torch.no_grad():
-                targets = rearrange(resnet(inputs), 'b vec h w -> b (vec h w)')
+                targets = resnet(inputs)
             outputs = teacher(inputs)
             loss = distillation_loss(outputs, targets) + compactness_loss(outputs)
 

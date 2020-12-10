@@ -12,6 +12,7 @@ class AnomalyResnet(nn.Module):
 
     def load_checkpoint(self, ckp_path, map_location=False):
         if map_location:
+            print("Using cpu map")
             state_dict = torch.load(ckp_path, map_location=torch.device("cpu"))
         else:
             state_dict = torch.load(ckp_path)
@@ -20,3 +21,10 @@ class AnomalyResnet(nn.Module):
     def forward(self, x):
         x = self.backbone(x)
         return x
+
+
+if __name__ == '__main__':
+    resnet = AnomalyResnet()
+    print(list(resnet.named_parameters()))
+    print(resnet.load_checkpoint('./ckp/best_model.pth'))
+
