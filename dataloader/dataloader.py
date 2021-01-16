@@ -58,19 +58,25 @@ def get_data_loader(train_transform):
     return train_data_loader
 
 
-def get_data_loaders(train_transform, val_transform):
-    train_dataset = ImageDataset('../data', 'train', train_transform)
-    val_dataset = ImageDataset('../data', 'val', val_transform)
+def get_healthy_data_loader(train_transform, shuffle=True):
+    train_dataset = ImageDataset('./data', 'healthy_train_sub', train_transform)
+    train_data_loader = DataLoader(train_dataset, batch_size=settings.batch_size_healthy, shuffle=shuffle, num_workers=settings.workers, pin_memory=True, drop_last=True)
+
+    return train_data_loader
+
+def get_data_loaders(train_transform, val_transform, batch_size=1):
+    train_dataset = ImageDataset('./data', 'train', train_transform)
+    val_dataset = ImageDataset('./data', 'val_sub', val_transform)
 
     train_data_loader = DataLoader(train_dataset,
-                                   batch_size=settings.batch_size,
+                                   batch_size=batch_size,
                                    shuffle=True,
                                    num_workers=settings.workers,
                                    pin_memory=True,
                                    drop_last=True)
 
     val_data_loader = DataLoader(val_dataset,
-                                 batch_size=settings.batch_size,
+                                 batch_size=batch_size,
                                  shuffle=False,
                                  num_workers=settings.workers,
                                  pin_memory=True,
@@ -79,3 +85,14 @@ def get_data_loaders(train_transform, val_transform):
     data_loaders = {'train': train_data_loader, 'val': val_data_loader}
 
     return data_loaders
+
+
+if __name__ == '__main__':
+    import settings
+    from torchvision import transforms
+
+    t = transforms.Compose([transforms.ToTensor()])
+    d = get_healthy_data_loader(t)
+    d2 = get_data_loader(t)
+    print("Healthy Size", len(d.dataset))
+    print("Normal Size", len(d2.dataset))

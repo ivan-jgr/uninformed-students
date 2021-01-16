@@ -7,9 +7,10 @@ from einops import rearrange
 from models.AnomalyResnet import AnomalyResnet
 from models.PatchNet import PatchAnomalyNet
 from dataloader.dataloader import get_data_loader
-from torchvision import transforms
+from torchvision import transforms, datasets
+import settings
 
-EPOCHS = 1000
+EPOCHS = 500
 model_name = './ckp/teacher_net.pth'
 
 def distillation_loss(output, target):
@@ -31,12 +32,23 @@ def compactness_loss(output):
     return loss
 
 
+def get_data(train_transforms):
+    data_train = datasets.ImageFolder(root='/home/BiomedLab/IHD/png_data_train/', transform=train_transforms)
+    #data_val = datasets.ImageFolder(root='../png_data_val/', transform=val_transforms)
+
+    train_loader = torch.utils.data.DataLoader(data_train, batch_size=settings.batch_size, shuffle=True)
+    #val_loader = torch.utils.data.DataLoader(data_val, batch_size=settings.batch_size, shuffle=True)
+
+    return train_loader
+
+
+
 if __name__ == '__main__':
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Device used: {device}")
 
     resnet = AnomalyResnet()
-    resnet.load_checkpoint('./ckp/best_model.pth', map_location=not torch.cuda.is_available())
+    resnet.load_checkpoint('/home/BiomedLab/IHD/intracraneal-hem-detection/checkpoints/best_model_keys.pth', map_location=not torch.cuda.is_available())
     resnet.backbone.fc = nn.Identity()
     resnet.eval().to(device)
 
@@ -54,7 +66,7 @@ if __name__ == '__main__':
         transforms.ToTensor(),
         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
     ])
-    data_loader = get_data_loader(data_transform)
+    data_loader = get_data(data_transform)
 
     # training
     min_running_loss = np.inf
